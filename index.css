@@ -1,0 +1,125 @@
+/* Import Inter font — must be first */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Design System */
+:root {
+  --primary: hsl(170, 60%, 40%);
+  --secondary: hsl(260, 55%, 55%);
+  --primary-gradient: linear-gradient(135deg, hsl(170,60%,40%), hsl(260,55%,55%));
+  --bg-dark: #0f172a; /* slate-900 */
+  --bg-light: #f8fafc; /* slate-50 */
+  --text-dark: #f8fafc;
+  --text-light: #0f172a;
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255,255,255,0.12);
+  --transition: 0.15s ease;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  min-height: 100%;
+  height: 100%;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 0.75rem;
+}
+
+/* Gradient button */
+.btn-gradient {
+  background: var(--primary-gradient);
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-gradient:hover {
+  transform: translateY(-2px);
+}
+
+/* Transition utility */
+.transition {
+  transition: var(--transition);
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Confetti styles (unchanged) */
+.confetti-piece {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  opacity: 0.95;
+  animation: confetti-fall 1.6s ease-out forwards;
+}
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(280px) rotate(720deg);
+    opacity: 0;
+  }
+}
+/* Print styles (unchanged) */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #invoice-preview,
+  #invoice-preview * {
+    visibility: visible !important;
+  }
+  #invoice-preview {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+  .print-hidden {
+    display: none !important;
+  }
+}
+
+/* ========== Mobile App Optimizations ========== */
+body {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input, select, textarea {
+  font-size: 16px !important; /* Prevents iOS auto-zoom on focus */
+}
+
+/* Helper for safe bottom padding (used in App.tsx) */
+.pb-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 16px) !important;
+}
+
+/* Ensure fixed headers/sidebars respect safe areas on modern iPhones */
+.pt-safe {
+  padding-top: env(safe-area-inset-top) !important;
+}

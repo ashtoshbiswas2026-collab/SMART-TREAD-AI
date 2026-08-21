@@ -1,0 +1,26 @@
+# BIZNURO AI - Robots.txt
+# https://biznuro.vercel.app
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin-9XqA72-hidden
+
+# Sitemap
+Sitemap: https://biznuro.vercel.app/sitemap.xml
+
+# Google Bot
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /admin-9XqA72-hidden
+
+# Bing Bot
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /admin-9XqA72-hidden
+
+# Crawl-delay (be polite)
+User-agent: *
+Crawl-delay: 1

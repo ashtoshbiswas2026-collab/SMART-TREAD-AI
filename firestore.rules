@@ -1,0 +1,286 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: customer_dues
+    // Fields:
+    //   - customerId: string (required, 1-100 chars)
+    //   - name: string (required, 1-100 chars)
+    //   - amount: number (required)
+    //   - userId: string (required, matches auth.uid)
+    //   - mobile: string (optional, 0-20 chars)
+    //   - daysPending: number (optional)
+    //   - risk: string (optional, enum: 'High', 'Medium', 'Low')
+    //   - createdAt: string (optional, ISO date)
+    //
+    // Collection: customers
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - userId: string (required, matches auth.uid)
+    //   - phone: string (optional, 0-20 chars)
+    //   - total_due: number (optional)
+    //   - last_payment_date: string (optional, ISO date)
+    //   - risk_level: string (optional, enum: 'High', 'Medium', 'Low')
+    //
+    // Collection: transactions
+    // Fields:
+    //   - date: string (required, ISO date)
+    //   - type: string (required, enum: 'Income', 'Expense')
+    //   - amount: number (required)
+    //   - category: string (required, 1-50 chars)
+    //   - userId: string (required, matches auth.uid)
+    //   - description: string (optional, 0-500 chars)
+    //   - customer_id: string (optional)
+    //   - profit: number (optional)
+    //   - createdAt: string (optional, ISO date)
+    //
+    // Collection: invoices
+    // Fields:
+    //   - invoice_number: string (required, 1-50 chars)
+    //   - total_amount: number (required)
+    //   - userId: string (required, matches auth.uid)
+    //   - customer_id: string (optional)
+    //   - product_list: list (optional)
+    //   - discount: number (optional)
+    //   - created_at: string (optional, ISO date)
+    //
+    // Collection: notes
+    // Fields:
+    //   - content: string (required, 1-2000 chars)
+    //   - userId: string (required, matches auth.uid)
+    //   - audio_path: string (optional)
+    //   - timestamp: string (optional)
+    //   - createdAt: string (optional, ISO date)
+    //
+    // Collection: ai_insights
+    // Fields:
+    //   - message: string (required, 1-2000 chars)
+    //   - userId: string (required, matches auth.uid)
+    //   - insight_type: string (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if the user is the owner of the existing document
+    function isDocOwner() {
+      return isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Check if the userId field in the request matches the authenticated user
+    function isRequestOwner() {
+      return isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidString(field, minLen, maxLen) {
+      return field in request.resource.data &&
+             request.resource.data[field] is string &&
+             request.resource.data[field].size() >= minLen &&
+             request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    function isValidNumber(field) {
+      return field in request.resource.data &&
+             (request.resource.data[field] is number || request.resource.data[field] is int);
+    }
+
+    function isValidOptionalNumber(field) {
+      return !(field in request.resource.data) ||
+             (request.resource.data[field] is number || request.resource.data[field] is int);
+    }
+
+    function isValidEnum(field, allowedValues) {
+      return field in request.resource.data &&
+             request.resource.data[field] in allowedValues;
+    }
+
+    function isValidOptionalEnum(field, allowedValues) {
+      return !(field in request.resource.data) ||
+             request.resource.data[field] in allowedValues;
+    }
+    
+    function isValidOptionalList(field, maxSize) {
+        return !(field in request.resource.data) ||
+               (request.resource.data[field] is list && request.resource.data[field].size() <= maxSize);
+    }
+
+    // Ensure userId is not modified on update
+    function userIdNotModified() {
+      return !('userId' in request.resource.data) || request.resource.data.userId == resource.data.userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (('email' in request.auth.token && request.auth.token.email == 'ashtosh.biswas.2026@gmail.com') ||
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          'role' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser() {
+      return hasRequiredFields(['email', 'role', 'plan', 'status', 'createdAt']) &&
+             isValidString('email', 5, 100) &&
+             isValidEnum('role', ['admin', 'user']) &&
+             isValidEnum('plan', ['basic', 'pro']) &&
+             isValidEnum('status', ['active', 'banned']) &&
+             isValidString('createdAt', 0, 50) &&
+             isValidOptionalString('shopName', 1, 100);
+    }
+
+    function isValidCustomerDue() {
+      return hasRequiredFields(['customerId', 'name', 'amount', 'userId']) &&
+             isRequestOwner() &&
+             isValidString('customerId', 1, 100) &&
+             isValidString('name', 1, 100) &&
+             isValidNumber('amount') &&
+             isValidOptionalString('mobile', 0, 20) &&
+             isValidOptionalNumber('daysPending') &&
+             isValidOptionalEnum('risk', ['High', 'Medium', 'Low']) &&
+             isValidOptionalString('createdAt', 0, 50);
+    }
+
+    function isValidCustomer() {
+      return hasRequiredFields(['name', 'userId']) &&
+             isRequestOwner() &&
+             isValidString('name', 1, 100) &&
+             isValidOptionalString('phone', 0, 20) &&
+             isValidOptionalNumber('total_due') &&
+             isValidOptionalString('last_payment_date', 0, 50) &&
+             isValidOptionalEnum('risk_level', ['High', 'Medium', 'Low']);
+    }
+
+    function isValidTransaction() {
+      return hasRequiredFields(['date', 'type', 'amount', 'category', 'userId']) &&
+             isRequestOwner() &&
+             isValidString('date', 1, 50) &&
+             isValidEnum('type', ['Income', 'Expense']) &&
+             isValidNumber('amount') &&
+             isValidString('category', 1, 50) &&
+             isValidOptionalString('description', 0, 500) &&
+             isValidOptionalString('customer_id', 0, 100) &&
+             isValidOptionalNumber('profit') &&
+             isValidOptionalString('createdAt', 0, 50);
+    }
+
+    function isValidInvoice() {
+      return hasRequiredFields(['invoice_number', 'total_amount', 'userId']) &&
+             isRequestOwner() &&
+             isValidString('invoice_number', 1, 50) &&
+             isValidNumber('total_amount') &&
+             isValidOptionalString('customer_id', 0, 100) &&
+             isValidOptionalList('product_list', 50) &&
+             isValidOptionalNumber('discount') &&
+             isValidOptionalString('created_at', 0, 50);
+    }
+
+    function isValidNote() {
+      return hasRequiredFields(['content', 'userId']) &&
+             isRequestOwner() &&
+             isValidString('content', 1, 2000) &&
+             isValidOptionalString('audio_path', 0, 200) &&
+             isValidOptionalString('timestamp', 0, 50) &&
+             isValidOptionalString('createdAt', 0, 50);
+    }
+
+    function isValidAIInsight() {
+      return hasRequiredFields(['message', 'userId']) &&
+             isRequestOwner() &&
+             isValidString('message', 1, 2000) &&
+             isValidOptionalString('insight_type', 0, 50);
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && request.auth.uid == userId &&
+                    isValidUser() &&
+                    request.resource.data.role == 'user' &&
+                    request.resource.data.plan == 'basic' &&
+                    request.resource.data.status == 'active';
+      allow update: if (isAdmin() && isValidUser()) || 
+                    (isOwner(userId) && isValidUser() && 
+                     request.resource.data.role == resource.data.role &&
+                     request.resource.data.plan == resource.data.plan &&
+                     request.resource.data.status == resource.data.status);
+    }
+
+    match /customer_dues/{docId} {
+      allow read: if isDocOwner();
+      allow create: if isValidCustomerDue();
+      allow update: if isDocOwner() && isValidCustomerDue() && userIdNotModified();
+      allow delete: if isDocOwner();
+    }
+
+    match /customers/{docId} {
+      allow read: if isDocOwner();
+      allow create: if isValidCustomer();
+      allow update: if isDocOwner() && isValidCustomer() && userIdNotModified();
+      allow delete: if isDocOwner();
+    }
+
+    match /transactions/{docId} {
+      allow read: if isDocOwner();
+      allow create: if isValidTransaction();
+      allow update: if isDocOwner() && isValidTransaction() && userIdNotModified();
+      allow delete: if isDocOwner();
+    }
+
+    match /invoices/{docId} {
+      allow read: if isDocOwner();
+      allow create: if isValidInvoice();
+      allow update: if isDocOwner() && isValidInvoice() && userIdNotModified();
+      allow delete: if isDocOwner();
+    }
+
+    match /notes/{docId} {
+      allow read: if isDocOwner();
+      allow create: if isValidNote();
+      allow update: if isDocOwner() && isValidNote() && userIdNotModified();
+      allow delete: if isDocOwner();
+    }
+
+    match /ai_insights/{docId} {
+      allow read: if isDocOwner();
+      allow create: if isValidAIInsight();
+      allow update: if isDocOwner() && isValidAIInsight() && userIdNotModified();
+      allow delete: if isDocOwner();
+    }
+
+    match /settings/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}

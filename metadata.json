@@ -1,0 +1,7 @@
+{
+  "name": "BIZNURO AI",
+  "description": "A comprehensive AI-powered business management tool for Bangladeshi small business owners, featuring chat, due management, invoicing, and financial analysis.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

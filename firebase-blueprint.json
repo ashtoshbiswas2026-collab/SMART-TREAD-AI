@@ -1,0 +1,140 @@
+{
+  "entities": {
+    "CustomerDue": {
+      "title": "Customer Due",
+      "description": "Represents a customer's due amount.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerId": { "type": "string" },
+        "name": { "type": "string" },
+        "mobile": { "type": "string" },
+        "amount": { "type": "number" },
+        "daysPending": { "type": "number" },
+        "risk": { "type": "string", "enum": ["High", "Medium", "Low"] },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerId", "name", "amount", "userId"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Represents a customer profile.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "total_due": { "type": "number" },
+        "last_payment_date": { "type": "string", "format": "date-time" },
+        "risk_level": { "type": "string", "enum": ["High", "Medium", "Low"] },
+        "userId": { "type": "string" }
+      },
+      "required": ["name", "userId"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Represents a financial transaction.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "type": { "type": "string", "enum": ["Income", "Expense"] },
+        "amount": { "type": "number" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "customer_id": { "type": "string" },
+        "profit": { "type": "number" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "type", "amount", "category", "userId"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Represents an invoice.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "invoice_number": { "type": "string" },
+        "customer_id": { "type": "string" },
+        "product_list": { "type": "array", "items": { "type": "object" } },
+        "discount": { "type": "number" },
+        "total_amount": { "type": "number" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
+      },
+      "required": ["invoice_number", "total_amount", "userId"]
+    },
+    "Note": {
+      "title": "Note",
+      "description": "Represents a user note.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "content": { "type": "string" },
+        "audio_path": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
+      },
+      "required": ["content", "userId"]
+    },
+    "AIInsight": {
+      "title": "AI Insight",
+      "description": "Represents an AI generated insight.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "insight_type": { "type": "string" },
+        "message": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["message", "userId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Represents a user profile.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "plan": { "type": "string", "enum": ["basic", "pro"] },
+        "status": { "type": "string", "enum": ["active", "banned"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role", "plan", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "Collection of users."
+    },
+    "customer_dues": {
+      "schema": "CustomerDue",
+      "description": "Collection of customer dues."
+    },
+    "customers": {
+      "schema": "Customer",
+      "description": "Collection of customers."
+    },
+    "transactions": {
+      "schema": "Transaction",
+      "description": "Collection of transactions."
+    },
+    "invoices": {
+      "schema": "Invoice",
+      "description": "Collection of invoices."
+    },
+    "notes": {
+      "schema": "Note",
+      "description": "Collection of user notes."
+    },
+    "ai_insights": {
+      "schema": "AIInsight",
+      "description": "Collection of AI insights."
+    }
+  }
+}
